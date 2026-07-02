@@ -1,0 +1,29 @@
+# Data layers — never commit generated data
+data/bronze/*/
+data/silver/*/
+data/gold/*/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+dist/
+build/
+
+# Env
+.env
+
+# Airflow
+logs/
+airflow.cfg
+airflow.db
+standalone_admin_password.txt
+webserver_config.py
+
+# Spark
+derby.log
+metastore_db/
+
+# macOS
+.DS_Store
