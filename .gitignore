@@ -1,7 +1,5 @@
-# Data layers — never commit generated data
-data/bronze/*/
-data/silver/*/
-data/gold/*/
+# Data layers — local PySpark output only
+data/
 
 # Python
 __pycache__/
