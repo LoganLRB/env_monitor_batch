@@ -1,0 +1,78 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        options: [dev]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Resolve role ARN
+        id: role
+        run: |
+          ENV_UPPER=$(echo "${{ inputs.environment }}" | tr '[:lower:]' '[:upper:]')
+          VAR_NAME="AWS_ROLE_${ENV_UPPER}"
+          echo "var_name=${VAR_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars[steps.role.outputs.var_name] }}
+          aws-region: us-east-1
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Run tests
+        run: |
+          pip install -r requirements.txt
+          python -m unittest discover -s tests -v
+
+      - name: Package pipeline for EMR
+        run: zip -r pipeline.zip pipeline/
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: "1.8"
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init -input=false
+
+      - name: Terraform Apply
+        working-directory: terraform
+        run: terraform apply -input=false -auto-approve -var="api_base_url=${{ vars.API_BASE_URL }}"
+
+      - name: Upload pipeline assets to MWAA bucket
+        working-directory: terraform
+        run: |
+          MWAA_BUCKET=$(terraform output -raw mwaa_bucket)
+          aws s3 cp ../pipeline.zip            s3://$MWAA_BUCKET/pipeline.zip
+          aws s3 sync ../scripts/              s3://$MWAA_BUCKET/scripts/
+          aws s3 sync ../dags/                 s3://$MWAA_BUCKET/dags/
+          aws s3 cp  ../requirements-mwaa.txt  s3://$MWAA_BUCKET/requirements.txt

@@ -1,0 +1,31 @@
+# Data layers: local PySpark output only
+data/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+dist/
+build/
+
+# Env
+.env
+
+# Airflow
+logs/
+airflow.cfg
+airflow.db
+standalone_admin_password.txt
+webserver_config.py
+
+# Spark
+derby.log
+metastore_db/
+
+# Terraform
+.terraform/
+*.tfplan
+
+# macOS
+.DS_Store
