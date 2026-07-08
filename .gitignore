@@ -23,5 +23,9 @@ webserver_config.py
 derby.log
 metastore_db/
 
+# Terraform
+.terraform/
+*.tfplan
+
 # macOS
 .DS_Store
