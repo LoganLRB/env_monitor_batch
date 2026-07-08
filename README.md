@@ -129,13 +129,14 @@ In local dev, `_load_ssm_env()` is a no-op and `docker-compose` injects values v
 
 | Workflow | Trigger | What it does |
 |---|---|---|
-| `deploy.yml` | Push to `main` | Runs tests, packages `pipeline.zip`, syncs DAGs/scripts/requirements to MWAA S3 bucket |
-| `terraform.yml` | PR touching `terraform/` or push to `main` | `validate` always; `plan` on PR (output posted as PR comment); `apply` on merge to `main` |
+| `plan.yml` | PR to `main` | `terraform init` + `plan`; posts collapsible output as a PR comment; blocks merge if plan fails |
+| `deploy.yml` | Manual (`workflow_dispatch`) | Runs tests, packages `pipeline.zip`, `terraform apply`, syncs DAGs/scripts/requirements to MWAA S3 bucket |
 
-**Required GitHub secrets:**
-- `AWS_DEPLOY_ROLE_ARN`: OIDC role for GitHub Actions (no long-lived keys)
-- `MWAA_BUCKET`: output of `terraform output mwaa_bucket`
+**Required GitHub Actions variables** (Settings > Secrets and variables > Actions > Variables):
+- `AWS_ROLE_DEV`: OIDC role ARN for the dev environment (no long-lived keys)
 - `API_BASE_URL`: URL of the running env_monitor_api
+
+No `MWAA_BUCKET` secret needed — the deploy workflow reads it directly from `terraform output -raw mwaa_bucket` after apply.
 
 ## Local Development (Docker Compose + LocalStack)
 
@@ -278,8 +279,8 @@ env_monitor_batch/
 │   ├── emr.tf                          # EMR Serverless application (auto-start/stop, capacity)
 │   └── ssm.tf                          # SSM parameters: pipeline config read by workers at startup
 ├── .github/workflows/
-│   ├── deploy.yml                      # Test + deploy pipeline code to MWAA
-│   └── terraform.yml                   # Plan on PR, apply on merge
+│   ├── plan.yml                        # Terraform plan on PR, output posted as comment
+│   └── deploy.yml                      # Manual dispatch: test + terraform apply + sync to MWAA
 ├── tests/
 │   ├── test_sensor_extract.py          # moto S3 mocks
 │   ├── test_sensor_transform.py        # Local SparkSession
