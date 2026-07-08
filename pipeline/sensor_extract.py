@@ -9,7 +9,6 @@ from pipeline.config import settings
 
 
 def _s3_client():
-    """Return a boto3 S3 client, routing to LocalStack when running locally."""
     kwargs = {}
     if endpoint_url := os.environ.get("AWS_ENDPOINT_URL"):
         kwargs["endpoint_url"] = endpoint_url
@@ -36,7 +35,7 @@ def extract_sensor_readings(
         "interval_seconds": interval_seconds,
     }
 
-    with httpx.Client(timeout=120.0) as client:
+    with httpx.Client(timeout=settings.api_timeout_seconds) as client:
         response = client.get(url, params=params)
         response.raise_for_status()
 
@@ -56,6 +55,6 @@ def extract_sensor_readings(
         ContentType="application/json",
     )
 
-    s3_uri = f"s3://{settings.s3_bucket}/{s3_key}"
-    print(f"[sensor_extract] {payload['reading_count']} readings → {s3_uri}")
+    s3_uri = f"s3a://{settings.s3_bucket}/{s3_key}"
+    print(f"[sensor_extract] {payload.get('reading_count', 'unknown')} readings -> {s3_uri}")
     return s3_uri

@@ -13,10 +13,12 @@ def transform_sensor_readings(
     execution_date: datetime | None = None,
     spark: SparkSession | None = None,
 ) -> str:
-    """Bronze JSON → Silver Parquet.
+    """Bronze JSON -> Silver Parquet.
 
-    Explodes the top-level ``readings`` array, casts numeric columns,
-    and adds a boolean ``is_alert`` column for HIGH/CRITICAL risk readings.
+    Explodes the top-level readings array, casts numeric columns, adds a
+    boolean is_alert column for HIGH/CRITICAL risk readings, and filters to
+    only rows whose timestamp falls on execution_date (guards against any
+    boundary readings the API may include at the window edge).
     """
     dt = execution_date or datetime.now(timezone.utc)
     own_spark = spark is None
@@ -25,6 +27,13 @@ def transform_sensor_readings(
 
     df = spark.read.option("multiline", "true").json(bronze_uri)
     df = df.select(F.explode("readings").alias("r")).select("r.*")
+
+    date_str = dt.strftime("%Y-%m-%d")
+    before_filter = df.count()
+    df = df.filter(F.to_date("timestamp") == F.lit(date_str))
+    dropped = before_filter - df.count()
+    if dropped > 0:
+        print(f"[sensor_transform] WARNING: dropped {dropped} out-of-window rows (timestamp outside {date_str})")
 
     df = (
         df.withColumn("timestamp", F.to_timestamp("timestamp"))
@@ -44,7 +53,7 @@ def transform_sensor_readings(
 
     df.write.mode("overwrite").parquet(out_prefix)
 
-    print(f"[sensor_transform] Silver written → {out_prefix}")
+    print(f"[sensor_transform] Silver written -> {out_prefix}")
 
     if own_spark:
         spark.stop()

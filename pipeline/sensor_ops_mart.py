@@ -12,10 +12,10 @@ def build_sensor_ops_mart(
     execution_date: datetime | None = None,
     spark: SparkSession | None = None,
 ) -> str:
-    """Silver Parquet → Gold sensor ops mart.
+    """Silver Parquet -> Gold sensor ops mart.
 
-    Per-sensor daily stats consumed by ops and maintenance teams
-    to track sensor health, battery levels, and data completeness.
+    Per-sensor daily stats consumed by ops and maintenance teams to track
+    sensor health, battery levels, and data completeness.
     """
     dt = execution_date or datetime.now(timezone.utc)
     own_spark = spark is None
@@ -26,7 +26,7 @@ def build_sensor_ops_mart(
     alert_int = F.col("is_alert").cast("int")
 
     mart = (
-        df.groupBy("sensor_id", "zone_id", "latitude", "longitude", F.to_date("timestamp").alias("date"))
+        df.groupBy("sensor_id", "zone_id", F.to_date("timestamp").alias("date"))
         .agg(
             F.count("*").alias("reading_count"),
             F.round(F.avg("temperature_f"), 2).alias("avg_temp_f"),
@@ -35,8 +35,9 @@ def build_sensor_ops_mart(
             F.round(F.max("pm25_ugm3"), 2).alias("max_pm25"),
             F.round(F.min("battery_pct"), 1).alias("min_battery_pct"),
             F.sum(alert_int).alias("alert_count"),
+            F.round(F.first("latitude", ignorenulls=True), 6).alias("latitude"),
+            F.round(F.first("longitude", ignorenulls=True), 6).alias("longitude"),
         )
-        .orderBy("date", "sensor_id")
     )
 
     date_part = f"year={dt.year}/month={dt.month:02d}/day={dt.day:02d}"
@@ -44,7 +45,7 @@ def build_sensor_ops_mart(
 
     mart.write.mode("overwrite").parquet(out_prefix)
 
-    print(f"[sensor_ops_mart] written → {out_prefix}")
+    print(f"[sensor_ops_mart] written -> {out_prefix}")
 
     if own_spark:
         spark.stop()

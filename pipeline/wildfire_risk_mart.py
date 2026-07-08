@@ -12,10 +12,10 @@ def build_wildfire_risk_mart(
     execution_date: datetime | None = None,
     spark: SparkSession | None = None,
 ) -> str:
-    """Silver Parquet → Gold wildfire risk mart.
+    """Silver Parquet -> Gold wildfire risk mart.
 
-    Zone-level daily aggregations consumed by ranger dashboards
-    and emergency response systems.
+    Zone-level daily aggregations consumed by ranger dashboards and emergency
+    response systems.
     """
     dt = execution_date or datetime.now(timezone.utc)
     own_spark = spark is None
@@ -40,7 +40,6 @@ def build_wildfire_risk_mart(
             F.sum(alert_int).alias("alert_count"),
             F.round(F.avg(alert_int.cast("double")) * 100, 1).alias("alert_pct"),
         )
-        .orderBy("date", "zone_id")
     )
 
     date_part = f"year={dt.year}/month={dt.month:02d}/day={dt.day:02d}"
@@ -48,7 +47,7 @@ def build_wildfire_risk_mart(
 
     mart.write.mode("overwrite").parquet(out_prefix)
 
-    print(f"[wildfire_risk_mart] written → {out_prefix}")
+    print(f"[wildfire_risk_mart] written -> {out_prefix}")
 
     if own_spark:
         spark.stop()
