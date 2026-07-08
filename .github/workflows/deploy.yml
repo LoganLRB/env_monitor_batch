@@ -26,7 +26,7 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     permissions:
-      id-token: write   # OIDC — no long-lived AWS keys in GitHub secrets
+      id-token: write   # OIDC: no long-lived AWS keys in GitHub secrets
       contents: read
 
     steps:

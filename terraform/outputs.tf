@@ -14,7 +14,7 @@ output "mwaa_webserver_url" {
 }
 
 output "emr_application_id" {
-  description = "EMR Serverless application ID — used in the Airflow DAG"
+  description = "EMR Serverless application ID, used in the Airflow DAG"
   value       = aws_emrserverless_application.spark.id
 }
 

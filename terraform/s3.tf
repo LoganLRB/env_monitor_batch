@@ -29,7 +29,7 @@ resource "aws_s3_bucket_public_access_block" "data_lake" {
   restrict_public_buckets = true
 }
 
-# WORM on bronze/ — raw data is immutable for compliance (NIST AU-9, FedRAMP)
+# WORM lock on bronze/: raw data is immutable for compliance (NIST AU-9, FedRAMP)
 resource "aws_s3_bucket_object_lock_configuration" "data_lake" {
   bucket = aws_s3_bucket.data_lake.id
   rule {

@@ -39,7 +39,30 @@ jobs:
 
       - name: Terraform Plan
         if: github.event_name == 'pull_request'
-        run: terraform plan -no-color -var="api_base_url=${{ secrets.API_BASE_URL }}"
+        id: plan
+        run: terraform plan -no-color -var="api_base_url=${{ secrets.API_BASE_URL }}" 2>&1 | tee /tmp/tfplan.txt
+        continue-on-error: true
+
+      - name: Post plan to PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const outcome = '${{ steps.plan.outcome }}';
+            const raw = fs.readFileSync('/tmp/tfplan.txt', 'utf8');
+            const maxLen = 60000;
+            const output = raw.length > maxLen ? raw.slice(0, maxLen) + '\n...(truncated)' : raw;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `### Terraform Plan: ${outcome === 'success' ? '✅' : '❌'}\n\n<details><summary>Show output</summary>\n\n\`\`\`\n${output}\n\`\`\`\n</details>`
+            });
+
+      - name: Fail if plan failed
+        if: github.event_name == 'pull_request' && steps.plan.outcome == 'failure'
+        run: exit 1
 
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'

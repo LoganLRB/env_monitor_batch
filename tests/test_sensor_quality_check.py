@@ -64,18 +64,16 @@ class TestSensorQualityCheck(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    @patch("pipeline.sensor_quality_check._EXPECTED_MIN_READINGS", 1)
-    @patch("pipeline.sensor_quality_check._EXPECTED_MAX_READINGS", 9999)
-    def test_passes_on_clean_data(self):
+    @patch("pipeline.sensor_quality_check._expected_reading_bounds", return_value=(1, 9999))
+    def test_passes_on_clean_data(self, _):
         from pipeline.sensor_quality_check import check_silver_quality
 
         silver = self._write_silver(_GOOD_ROWS, self.tmp_path)
         report = check_silver_quality(silver, execution_date=datetime(2026, 7, 1, tzinfo=timezone.utc), spark=self.spark)
         self.assertTrue(report.passed)
 
-    @patch("pipeline.sensor_quality_check._EXPECTED_MIN_READINGS", 1)
-    @patch("pipeline.sensor_quality_check._EXPECTED_MAX_READINGS", 9999)
-    def test_fails_on_out_of_range_temperature(self):
+    @patch("pipeline.sensor_quality_check._expected_reading_bounds", return_value=(1, 9999))
+    def test_fails_on_out_of_range_temperature(self, _):
         from pipeline.sensor_quality_check import check_silver_quality
 
         bad_rows = [
@@ -86,9 +84,8 @@ class TestSensorQualityCheck(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             check_silver_quality(silver, execution_date=datetime(2026, 7, 1, tzinfo=timezone.utc), spark=self.spark)
 
-    @patch("pipeline.sensor_quality_check._EXPECTED_MIN_READINGS", 1)
-    @patch("pipeline.sensor_quality_check._EXPECTED_MAX_READINGS", 9999)
-    def test_fails_on_duplicate_sensor_timestamp(self):
+    @patch("pipeline.sensor_quality_check._expected_reading_bounds", return_value=(1, 9999))
+    def test_fails_on_duplicate_sensor_timestamp(self, _):
         from pipeline.sensor_quality_check import check_silver_quality
 
         ts = _ts("2026-07-01T08:00:00")

@@ -4,7 +4,7 @@ resource "aws_vpc" "main" {
   enable_dns_support   = true
 }
 
-# Private subnets — MWAA workers run here, no public IPs
+# Private subnets: MWAA workers run here, no public IPs
 resource "aws_subnet" "private" {
   count             = 2
   vpc_id            = aws_vpc.main.id
@@ -76,7 +76,7 @@ resource "aws_vpc_endpoint" "s3" {
 
 resource "aws_security_group" "mwaa" {
   name        = "${var.project}-mwaa"
-  description = "MWAA environment — workers communicate with each other"
+  description = "MWAA environment: allows workers to communicate with each other"
   vpc_id      = aws_vpc.main.id
 
   ingress {

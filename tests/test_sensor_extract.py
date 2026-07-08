@@ -9,7 +9,8 @@ from moto import mock_aws
 SAMPLE_PAYLOAD = {
     "sensor_count": 2,
     "reading_count": 2,
-    "hours": 1,
+    "start": "2026-07-01T00:00:00+00:00",
+    "end": "2026-07-02T00:00:00+00:00",
     "interval_seconds": 3600,
     "readings": [
         {
@@ -61,7 +62,6 @@ def _mock_http_client():
 class TestExtractSensorReadings(unittest.TestCase):
     def _patch_settings(self, mock_settings):
         mock_settings.api_base_url = "http://testhost"
-        mock_settings.fetch_hours = 1
         mock_settings.fetch_interval_seconds = 3600
         mock_settings.s3_bucket = _BUCKET
         mock_settings.s3_prefix = _PREFIX
@@ -79,12 +79,11 @@ class TestExtractSensorReadings(unittest.TestCase):
 
             s3_uri = extract_sensor_readings(
                 execution_date=datetime(2026, 7, 1, tzinfo=timezone.utc),
-                hours=1,
                 interval_seconds=3600,
             )
 
-        self.assertTrue(s3_uri.startswith(f"s3://{_BUCKET}/"))
-        key = s3_uri.removeprefix(f"s3://{_BUCKET}/")
+        self.assertTrue(s3_uri.startswith(f"s3a://{_BUCKET}/"))
+        key = s3_uri.removeprefix(f"s3a://{_BUCKET}/")
         payload = json.loads(
             boto3.client("s3", region_name="us-east-1")
             .get_object(Bucket=_BUCKET, Key=key)["Body"]
@@ -121,7 +120,7 @@ class TestExtractSensorReadings(unittest.TestCase):
 
             s3_uri = extract_sensor_readings(execution_date=datetime(2026, 7, 1, tzinfo=timezone.utc))
 
-        key = s3_uri.removeprefix(f"s3://{_BUCKET}/")
+        key = s3_uri.removeprefix(f"s3a://{_BUCKET}/")
         self.assertEqual(s3.head_object(Bucket=_BUCKET, Key=key)["ServerSideEncryption"], "AES256")
 
 

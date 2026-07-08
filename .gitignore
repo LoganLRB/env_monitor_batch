@@ -1,4 +1,4 @@
-# Data layers — local PySpark output only
+# Data layers: local PySpark output only
 data/
 
 # Python

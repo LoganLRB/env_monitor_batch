@@ -55,7 +55,7 @@ data "aws_iam_policy_document" "mwaa" {
     }
   }
 
-  # CloudWatch Logs — task logs, scheduler logs
+  # CloudWatch Logs: task logs, scheduler logs
   statement {
     actions = [
       "logs:CreateLogGroup", "logs:CreateLogStream",
@@ -66,7 +66,13 @@ data "aws_iam_policy_document" "mwaa" {
     resources = ["arn:aws:logs:${local.region}:${local.aid}:log-group:*"]
   }
 
-  # Secrets Manager — for API key if env_monitor_api adds auth
+  # SSM Parameter Store: pipeline config (API URL, bucket names, EMR IDs)
+  statement {
+    actions   = ["ssm:GetParameter", "ssm:GetParameters", "ssm:GetParametersByPath"]
+    resources = ["arn:aws:ssm:${local.region}:${local.aid}:parameter/${var.project}/*"]
+  }
+
+  # Secrets Manager: for API key if env_monitor_api adds auth
   statement {
     actions   = ["secretsmanager:GetSecretValue"]
     resources = ["arn:aws:secretsmanager:${local.region}:${local.aid}:secret:${var.project}/*"]

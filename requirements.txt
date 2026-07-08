@@ -1,7 +1,7 @@
 httpx==0.27.0
-pyspark==3.5.3
-pyarrow==17.0.0
+pyspark>=4.0.0
+pyarrow>=18.0.0
 pydantic-settings==2.4.0
 boto3==1.35.0
 # Test-only
-moto[s3]==5.0.0
+moto[s3]>=5.0.0

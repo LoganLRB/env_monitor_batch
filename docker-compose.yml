@@ -1,4 +1,4 @@
-# Local development only — production runs on MWAA + EMR Serverless + S3
+# Local development only. Production runs on MWAA + EMR Serverless + S3.
 # LocalStack replaces S3 so you can run the full pipeline without an AWS account.
 
 x-airflow-common: &airflow-common
@@ -7,7 +7,6 @@ x-airflow-common: &airflow-common
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
     AIRFLOW__CORE__LOAD_EXAMPLES: "false"
-    JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
     PYTHONPATH: /opt/airflow
     # Point boto3 at LocalStack instead of real AWS
     AWS_ENDPOINT_URL: http://localstack:4566
@@ -15,13 +14,14 @@ x-airflow-common: &airflow-common
     AWS_SECRET_ACCESS_KEY: test
     AWS_DEFAULT_REGION: us-east-1
     # Pipeline settings
+    ENVIRONMENT: local
     API_BASE_URL: ${API_BASE_URL:-http://host.docker.internal:8000}
     S3_BUCKET: env-monitor-local
     S3_PREFIX: sensor-data
     MWAA_BUCKET: env-monitor-local
-    FETCH_HOURS: ${FETCH_HOURS:-24}
     FETCH_INTERVAL_SECONDS: ${FETCH_INTERVAL_SECONDS:-300}
-    # Not used locally — DAG falls back to PythonOperator for Spark tasks
+    EXPECTED_SENSOR_COUNT: ${EXPECTED_SENSOR_COUNT:-12}
+    # Dummy values. DAG switches to PythonOperator when ENVIRONMENT=local.
     EMR_APPLICATION_ID: local
     EMR_EXECUTION_ROLE_ARN: arn:aws:iam::000000000000:role/local
   volumes:
@@ -64,15 +64,19 @@ services:
 
   airflow-init:
     <<: *airflow-common
-    command: >
-      bash -c "
-        airflow db migrate &&
-        airflow users create
-          --username admin --password admin
-          --firstname Admin --lastname User
-          --role Admin --email admin@example.com || true &&
-        aws --endpoint-url=http://localstack:4566 s3 mb s3://env-monitor-local 2>/dev/null || true
-      "
+    command:
+      - bash
+      - -c
+      - |
+        set -e
+        airflow db migrate
+        airflow users create \
+          --username admin --password admin \
+          --firstname Admin --lastname User \
+          --role Admin --email admin@example.com || true
+        until python3 -c "import boto3; boto3.client('s3',endpoint_url='http://localstack:4566',aws_access_key_id='test',aws_secret_access_key='test',region_name='us-east-1').create_bucket(Bucket='env-monitor-local')" 2>/dev/null; do
+          echo "Waiting for LocalStack S3..."; sleep 2;
+        done
     restart: "no"
 
   airflow-webserver:

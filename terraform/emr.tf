@@ -7,7 +7,7 @@ resource "aws_emrserverless_application" "spark" {
     enabled = true
   }
 
-  # Shut down after 15 minutes idle — avoids charges between daily runs
+  # Shut down after 15 minutes idle to avoid charges between daily runs
   auto_stop_configuration {
     enabled              = true
     idle_timeout_minutes = 15
