@@ -58,7 +58,7 @@ jobs:
             const planOutput = raw.length > maxLength
               ? raw.substring(0, maxLength) + '\n...(truncated)'
               : raw;
-            const body = `### Terraform Plan — \`${env}\`: ${outcome === 'success' ? '✅' : '❌'}
+            const body = `### Terraform Plan: \`${env}\` ${outcome === 'success' ? '✅' : '❌'}
 
             <details><summary>Show output</summary>
 
