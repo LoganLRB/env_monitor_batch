@@ -17,6 +17,9 @@ env_monitor_api
         v  EMR Serverless (PySpark)
   Gold    s3://<data-lake>/sensor-data/gold/wildfire_risk/year=/month=/day=/
           s3://<data-lake>/sensor-data/gold/sensor_ops/year=/month=/day=/
+                |
+                v  env_monitor_dashboard
+          GET /v1/zones/{zone_id}/history  <- reads wildfire_risk Gold mart via pyarrow + s3fs
 ```
 
 Airflow DAG `sensor_batch_pipeline` runs `@daily` on MWAA:
@@ -136,7 +139,7 @@ In local dev, `_load_ssm_env()` is a no-op and `docker-compose` injects values v
 - `AWS_ROLE_DEV`: OIDC role ARN for the dev environment (no long-lived keys)
 - `API_BASE_URL`: URL of the running env_monitor_api
 
-No `MWAA_BUCKET` secret needed — the deploy workflow reads it directly from `terraform output -raw mwaa_bucket` after apply.
+No `MWAA_BUCKET` secret needed; the deploy workflow reads it directly from `terraform output -raw mwaa_bucket` after apply.
 
 ## Local Development (Docker Compose + LocalStack)
 
@@ -247,7 +250,6 @@ All settings are managed via `pipeline/config.py` (pydantic-settings). The follo
 | **Failure alerting** | SNS topic + `on_failure_callback` in the DAG + CloudWatch Alarm on EMR `JobRunFailed` metric. Nothing currently notifies anyone when the pipeline fails. Highest-priority gap before production use. |
 | **Data freshness alarm** | CloudWatch Metric Filter on Airflow task logs + alarm if no successful extract is logged by ~1 AM UTC. Catches silent failures where Airflow itself is healthy but no data arrived. |
 | **Quality check metrics** | Emit row count, null counts, and out-of-range counts as custom CloudWatch metrics after each quality check pass. Enables trending and early detection of slow API data degradation before hard failures. |
-| **`env_monitor_streaming`** | SSE consumer of `/v1/sensors/stream`, referenced in `env_monitor_api` but not yet built. Would feed a Kafka topic for real-time processing alongside this batch pipeline. |
 | **Multi-environment Terraform** | Follow `social_app_database` pattern: separate `terraform/envs/dev`, `envs/stg`, `envs/prod` directories with shared modules. Currently single-environment. |
 | **Automated backfill detection** | Scheduled Lambda or Airflow sensor that checks S3 for expected date partitions and alerts (via SNS) if any are missing beyond a configurable lag window. |
 
